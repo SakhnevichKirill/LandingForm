@@ -1,0 +1,44 @@
+.container {
+    display: flex;
+
+    justify-content: center;
+}
+
+form {
+    display: flex;
+
+    flex-direction: column;
+
+    margin-top: 50px;
+    padding: 20px;
+
+    row-gap: 20px;
+
+    width: 600px;
+
+    border: 2px black dashed;
+    border-radius: 20px;
+}
+
+form > .title {
+    text-align: center;
+}
+
+form > input {
+    padding: 2px;
+}
+
+form > .submit {
+    width: 100px;
+    height: 30px;
+    align-self: center;
+}
+
+form > .phone > .phone_number_code {
+    width: 30px;
+}
+
+.important {
+    font-weight: bold;
+    color: red;
+}

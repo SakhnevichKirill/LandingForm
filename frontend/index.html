@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="CSS/layout.css">
+    <title>Manuspect</title>
+</head>
+<body>
+    <div class="container">
+        <form action="http://0.0.0.0:80/insert" method="post">
+            <h2 class="title">Manuspect</h2>
+            <label for="name">Name <span class="important">*</span></label>
+            <input name="name" type="text" required>
+            <label for="email">Email</label>
+            <input name="email" type="email">
+            <label for="phone">Phone <span class="important">*</span></label>
+            <div class="phone">
+                <label for="phone_number_code">+</label>
+                <input class="phone_number_code" name="phone_number_code" type="text" placeholder="7" required>
+                <input class="phone_number" name="phone_number" type="text" placeholder="9999999999" required>
+            </div>
+            <input class="submit" type="submit" value="Subscribe">
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,71 @@
+openapi: 3.0.0
+servers:
+  - description: Simple Registration/Login form verification
+    url: http://0.0.0.0
+info:
+  version: "1.0.0"
+  title: Registration/Login form verifier.
+  description: The API for Registration/Login form verification.
+paths:
+  /verify:
+    post:
+      tags:
+        - User
+      operationId: login
+      responses:
+        '200':
+          description: There is NEVER a response 200 OK. Instead, there is a redirection to the page with the result.
+        '500':
+          description: INTERNAL_SERVER_ERROR
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignIn'
+  /insert:
+    post:
+      tags:
+        - User
+      operationId: register
+      responses:
+        '200':
+          description: There is NEVER a response 200 OK. Instead, there is a redirection to the page with the result.
+        '500':
+          description: INTERNAL_SERVER_ERROR
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+components:
+  schemas:
+    SignIn:
+      type: object
+      properties:
+        login:
+          type: string
+          example: 'example@gmail.com'
+        password:
+          type: string
+          example: 'password'
+    NewUser:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'John'
+        email:
+          type: string
+          nullable: true
+          example: 'john@example.com'
+        phone_number_code:
+          type: integer
+          format: int32
+          example: 1
+        phone_number:
+          type: string
+          example: 1234567890
+        password:
+          type: string
+          example: qwerty123
+        

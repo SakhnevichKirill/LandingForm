@@ -1,0 +1,18 @@
+[package]
+name = "landing_form"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+argon2 = "0.5.0"
+axum = "0.6.18"
+diesel = { version = "2.0.4", features = ["postgres"] }
+dotenvy = "0.15.7"
+serde = { version = "1.0.163", features = ["derive"] }
+tokio = { version = "1.28.1", features = ["full"] }
+
+[[bin]]
+name = "landing_form"
+path = "src/main.rs"

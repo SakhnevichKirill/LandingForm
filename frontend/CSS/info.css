@@ -1,0 +1,16 @@
+a {
+    text-decoration: none;
+}
+
+button {
+    display: block;
+
+    width: 100px;
+    height: 30px;
+
+    margin: 20px auto 20px auto;
+}
+
+h1, h2, p {
+    text-align: center;
+}
