@@ -1,35 +1,73 @@
-use axum::{http::StatusCode, response::Redirect, Form};
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+use axum::{http::StatusCode, Form};
+use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 
 use crate::{
     models::{NewUser, User},
     schema::users::{self, dsl::*},
-    utils::{database_functions::establish_connection, security::hash_password},
+    utils::{
+        database_functions::establish_connection, responses::DefaultResponse,
+        security::hash_password,
+    },
 };
 
-pub async fn insert(Form(user): Form<NewUser>) -> Result<Redirect, StatusCode> {
-    let connection = &mut establish_connection()?;
+pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
+    const SERVER_ERROR: &str = "Something went wrong on the server side";
+
+    // Try to establish a connection with the database.
+    let mut connection: PgConnection = match establish_connection() {
+        Ok(connection) => connection,
+        Err(error) => {
+            eprintln!("{}", error);
+            return DefaultResponse {
+                status_code: StatusCode::INTERNAL_SERVER_ERROR,
+                message: Some(SERVER_ERROR.to_string()),
+                redirect: None,
+            };
+        }
+    };
 
     match verify_form(&user) {
         Ok(_) => (),
         Err(err) => {
             match err {
                 "USER_EXISTS" => {
-                    return Ok(Redirect::to(
-                        "http://127.0.0.1:5500/frontend/HTML/already_subscribed.html",
-                    ))
+                    return DefaultResponse {
+                        status_code: StatusCode::UNAUTHORIZED,
+                        message: Some("The user already exists".to_string()),
+                        redirect: Some(
+                            "http://127.0.0.1:5500/frontend/HTML/already_subscribed.html"
+                                .to_string(),
+                        ),
+                    }
                 }
                 "TOO_SHORT_PASSWORD" => {
-                    return Ok(Redirect::to(
-                        "http://127.0.0.1:5500/frontend/HTML/too_short_password.html",
-                    ))
+                    return DefaultResponse {
+                        status_code: StatusCode::UNAUTHORIZED,
+                        message: Some("The password is too short".to_string()),
+                        redirect: Some(
+                            "http://127.0.0.1:5500/frontend/HTML/too_short_password.html"
+                                .to_string(),
+                        ),
+                    }
                 }
                 "INCORRECT_PHONE_NUMBER" => {
-                    return Ok(Redirect::to(
-                        "http://127.0.0.1:5500/frontend/HTML/incorrect_phone_number.html",
-                    ))
+                    return DefaultResponse {
+                        status_code: StatusCode::UNAUTHORIZED,
+                        message: Some("The phone number is written in a wrong format".to_string()),
+                        redirect: Some(
+                            "http://127.0.0.1:5500/frontend/HTML/incorrect_phone_number.html"
+                                .to_string(),
+                        ),
+                    }
                 }
-                _ => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+                error => {
+                    eprintln!("{}", error);
+                    return DefaultResponse {
+                        status_code: StatusCode::INTERNAL_SERVER_ERROR,
+                        message: Some(SERVER_ERROR.to_string()),
+                        redirect: None,
+                    };
+                }
             };
         }
     }
@@ -40,24 +78,40 @@ pub async fn insert(Form(user): Form<NewUser>) -> Result<Redirect, StatusCode> {
     let mut user = user;
 
     if let Some(passwrd) = user.password {
-        user.password = Some(hash_password(passwrd).await.map_err(|error| {
-            println!("{}", error);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?);
+        user.password = match hash_password(passwrd).await {
+            Ok(passwrd) => Some(passwrd),
+            Err(error) => {
+                eprintln!("{}", error);
+                return DefaultResponse {
+                    status_code: StatusCode::INTERNAL_SERVER_ERROR,
+                    message: Some(SERVER_ERROR.to_string()),
+                    redirect: None,
+                };
+            }
+        }
         // println!("Hashed password: {}", user.password.clone().unwrap());
     }
 
-    diesel::insert_into(users::table)
+    match diesel::insert_into(users::table)
         .values(user)
-        .get_result::<User>(connection)
-        .map_err(|error| {
-            println!("{}", error);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .get_result::<User>(&mut connection)
+    {
+        Ok(_) => (),
+        Err(error) => {
+            eprintln!("{}", error);
+            return DefaultResponse {
+                status_code: StatusCode::INTERNAL_SERVER_ERROR,
+                message: Some(SERVER_ERROR.to_string()),
+                redirect: None,
+            };
+        }
+    };
 
-    Ok(Redirect::to(
-        "http://127.0.0.1:5500/frontend/HTML/subscribed.html",
-    ))
+    DefaultResponse {
+        status_code: StatusCode::OK,
+        message: Some("The subscription was successful!".to_string()),
+        redirect: Some("http://127.0.0.1:5500/frontend/HTML/subscribed.html".to_string()),
+    }
 }
 
 fn verify_form(user: &NewUser) -> Result<(), &'static str> {
