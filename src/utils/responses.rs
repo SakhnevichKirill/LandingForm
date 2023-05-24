@@ -1,5 +1,6 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::Serialize;
+use utoipa::{ToResponse, ToSchema};
 
 pub struct DefaultResponse {
     pub status_code: StatusCode,
@@ -18,8 +19,8 @@ impl IntoResponse for DefaultResponse {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToResponse, ToSchema)]
 pub struct ResponseJson {
-    message: Option<String>,
-    redirect: Option<String>,
+    pub message: Option<String>,
+    pub redirect: Option<String>,
 }

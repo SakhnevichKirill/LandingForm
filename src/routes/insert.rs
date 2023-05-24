@@ -1,5 +1,6 @@
 use axum::{http::StatusCode, Form};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use serde_json;
 
 use crate::{
     models::{NewUser, User},
@@ -10,6 +11,19 @@ use crate::{
     },
 };
 
+/// Add a new user to the database.
+///
+#[utoipa::path(
+    post,
+    tag = "AddUser",
+    path = "/insert",
+    request_body(content = NewUser, description = "Some data about a user", content_type = "application/x-www-form-urlencoded"),
+    responses(
+        (status = StatusCode::OK, description = "The user is added to the database successfully", body = ResponseJson, example = json!("{\"message\": \"The user is added successfully!\", \"redirect\": null}")),
+        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side", body = ResponseJson, example = json!("{\"message\": \"An error occurred on the server side.\", \"redirect\": null}")),
+        (status = StatusCode::UNAUTHORIZED, description = "The user already exists in the database, no need to add them again", body = ResponseJson, example = json!("{\"message\": \"The user has already been added, no need to do that again.\", \"redirect\": \"http://localhost/user_added.html\"}"))
+    )
+)]
 pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
     const SERVER_ERROR: &str = "Something went wrong on the server side";
 
