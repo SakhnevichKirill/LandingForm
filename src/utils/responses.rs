@@ -21,6 +21,8 @@ impl IntoResponse for DefaultResponse {
 
 #[derive(Serialize, ToResponse, ToSchema)]
 pub struct ResponseJson {
+    #[schema(example = "This is a simple message.")]
     pub message: Option<String>,
+    #[schema(example = "https://this/is/another/page.html")]
     pub redirect: Option<String>,
 }

@@ -1,5 +1,6 @@
 use axum::{http::StatusCode, Form};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use regex::Regex;
 use serde_json;
 
 use crate::{
@@ -10,6 +11,9 @@ use crate::{
         security::hash_password,
     },
 };
+
+use crate::routes::dispatch_email;
+use crate::routes::dispatch_email::EmailPayload;
 
 /// Add a new user to the database.
 ///
@@ -40,10 +44,12 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
         }
     };
 
+    // Check if the form is filled out properly.
     match verify_form(&user) {
         Ok(_) => (),
         Err(err) => {
             match err {
+                // The user has already been added to the database.
                 "USER_EXISTS" => {
                     return DefaultResponse {
                         status_code: StatusCode::UNAUTHORIZED,
@@ -54,6 +60,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
                         ),
                     }
                 }
+                // The password is too short.
                 "TOO_SHORT_PASSWORD" => {
                     return DefaultResponse {
                         status_code: StatusCode::UNAUTHORIZED,
@@ -64,6 +71,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
                         ),
                     }
                 }
+                // There is an issue with the phone number.
                 "INCORRECT_PHONE_NUMBER" => {
                     return DefaultResponse {
                         status_code: StatusCode::UNAUTHORIZED,
@@ -74,6 +82,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
                         ),
                     }
                 }
+                // Any other error, but this should not be called.
                 error => {
                     eprintln!("{}", error);
                     return DefaultResponse {
@@ -106,8 +115,9 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
         // println!("Hashed password: {}", user.password.clone().unwrap());
     }
 
+    // Try to insert a user to the database.
     match diesel::insert_into(users::table)
-        .values(user)
+        .values(&user)
         .get_result::<User>(&mut connection)
     {
         Ok(_) => (),
@@ -121,6 +131,24 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
         }
     };
 
+    // Send an email to the new user if the user specified an email.
+    if let Some(user_email) = user.email {
+        // Check if the email provided is correct.
+        if is_valid_email(&user_email) {
+            // The email is valid, send the email to the user.
+            dispatch_email(
+                EmailPayload {
+                    fullname: user.name,
+                    email: user_email,
+                    message: "Welcome to Manuspect!".to_string(),
+                }
+                .into(),
+            )
+            .await;
+        }
+    }
+
+    // Everything went successfully, return OK to the user.
     DefaultResponse {
         status_code: StatusCode::OK,
         message: Some("The subscription was successful!".to_string()),
@@ -128,6 +156,18 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
     }
 }
 
+/// This function verifies an email address.
+fn is_valid_email(test_email: &str) -> bool {
+    // Define the regular expression pattern for email validation
+    let pattern =
+        Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
+            .unwrap();
+
+    // Check if the email matches the pattern
+    pattern.is_match(test_email)
+}
+
+// This function verifies a submitted form.
 fn verify_form(user: &NewUser) -> Result<(), &'static str> {
     // Establish a new connection with the database.
     let connection = &mut establish_connection().map_err(|error| {
@@ -141,11 +181,6 @@ fn verify_form(user: &NewUser) -> Result<(), &'static str> {
     phone_num
         .parse::<i64>()
         .map_err(|_error| "INCORRECT_PHONE_NUMBER")?;
-
-    // Check the length of the phone number.
-    if phone_num.len() != 10 {
-        return Err("INCORRECT_PHONE_NUMBER");
-    }
 
     // Make sure that the user with the same phone number does not exist.
     let result: Vec<User> = users

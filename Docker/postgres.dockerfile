@@ -2,7 +2,7 @@
 FROM postgres:latest
 
 # Set environment variables.
-ENV POSTGRES_PASSWORD "bebra2"
+ENV POSTGRES_PASSWORD $POSTGRES_PASSWORD
 ENV POSTGRES_USER admin
 ENV POSTGRES_DB manuspect
 

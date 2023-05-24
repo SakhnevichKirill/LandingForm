@@ -1,3 +1,4 @@
+use crate::routes::dispatch_email::{EmailPayload, __path_dispatch_email};
 use crate::routes::insert::__path_insert;
 use crate::schema::users;
 use crate::utils::responses::ResponseJson;
@@ -47,7 +48,7 @@ pub struct NewUser {
         (url = "http://localhost", description = "This is a local server for testing"),
         (url = "http://95.165.88.39", description = "This is a remote server for testing"),
     ),
-    paths(insert),
-    components(schemas(NewUser, ResponseJson))
+    paths(insert, dispatch_email),
+    components(schemas(NewUser, ResponseJson, EmailPayload))
 )]
 pub struct ApiDoc;
