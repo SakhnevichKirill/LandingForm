@@ -14,6 +14,8 @@ use crate::utils::responses::DefaultResponse;
 pub struct EmailPayload {
     #[schema(example = "John Johnson")]
     pub fullname: String,
+    #[schema(example = "Login confirmation")]
+    pub subject: String,
     #[schema(example = "johnjohnson@gmail.com")]
     pub email: String,
     #[schema(example = "This is a message from a server.")]
@@ -38,16 +40,17 @@ pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultRespons
 
     // Destructure the HTTP request body.
     let EmailPayload {
+        fullname,
+        subject,
         email,
         message,
-        fullname,
     } = &payload;
 
     // Construct email config.
     let from_address = String::from("Manuspect <manuspect.prod@gmail.com>");
     let to_address = format!("{fullname} <{email}>");
     let reply_to = String::from("Manuspect <manuspect.prod@gmail.com>");
-    let email_subject = "Axum Rust tutorial";
+    let email_subject = subject;
 
     let email = Message::builder()
         .from(from_address.parse().unwrap())

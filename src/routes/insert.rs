@@ -139,6 +139,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
             dispatch_email(
                 EmailPayload {
                     fullname: user.name,
+                    subject: "Subscription is activated".to_string(),
                     email: user_email,
                     message: "Welcome to Manuspect!".to_string(),
                 }
