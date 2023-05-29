@@ -10,5 +10,8 @@ COPY ./ ./
 # Build the application
 RUN cargo build --release
 
+# Expose the service to a specific port
+EXPOSE 8181
+
 # Set the command to run your application
 CMD ["cargo", "run", "--release"]
