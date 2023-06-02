@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landing-form-deployment
+  labels:
+    app: landing-form
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: landing-form
+  template:
+    metadata:
+      labels:
+        app: landing-form
+    spec:
+      containers:
+      - name: landing-form
+        image: landing-form
+        # never pull the image policy
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8181
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: landing-form-service
+spec:
+  selector:
+    app: landing-form
+  ports:
+    - protocol: TCP
+      port: 8181
+      targetPort: 8181
