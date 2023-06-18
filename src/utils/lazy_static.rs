@@ -32,6 +32,10 @@ lazy_static! {
     )
     .expect("Cannot create a metric");
 
+    // This static variable stores all the approved paths.
+    //
+    // WARNING: Any path that does not begin with any of the approved
+    // beginnings are not served.
     pub static ref ALLOWED_PATHS: HashSet<&'static str> = {
         let allowed_paths: HashSet<&str> = HashSet::from(["/", "/metrics", "/swagger-ui", "/api-doc", "/insert"]);
         allowed_paths

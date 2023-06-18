@@ -1,3 +1,6 @@
+// This endpoint logs in a user
+// WARNING: Currently this endpoint is out of use.
+
 use super::super::models::*;
 use axum::{extract::Form, http::StatusCode};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};

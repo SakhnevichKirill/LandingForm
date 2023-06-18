@@ -3,6 +3,8 @@ use axum::http::StatusCode;
 use dotenvy::dotenv;
 use std::env;
 
+// This function hashes passwords.
+// Currently it is powered by Argon2.
 pub async fn hash_password(password: String) -> Result<String, StatusCode> {
     dotenv().ok();
 

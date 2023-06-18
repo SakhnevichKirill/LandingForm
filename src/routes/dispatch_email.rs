@@ -1,3 +1,6 @@
+// This file contains all the functionality for sending
+// emails.
+
 use axum::{http::StatusCode, Json};
 use dotenvy::dotenv;
 use lettre::transport::smtp::authentication::Credentials;
@@ -64,7 +67,7 @@ pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultRespons
         match env::var("SMTP_USERNAME") {
             Ok(var) => var,
             Err(error) => {
-                eprintln!("{}3", error);
+                eprintln!("{}", error);
                 return DefaultResponse {
                     status_code: StatusCode::INTERNAL_SERVER_ERROR,
                     message: Some(SERVER_ERROR.to_string()),
@@ -75,7 +78,7 @@ pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultRespons
         match env::var("SMTP_PASSWORD") {
             Ok(var) => var,
             Err(error) => {
-                eprintln!("{}2", error);
+                eprintln!("{}", error);
                 return DefaultResponse {
                     status_code: StatusCode::INTERNAL_SERVER_ERROR,
                     message: Some(SERVER_ERROR.to_string()),
@@ -89,7 +92,7 @@ pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultRespons
     let mailer = match SmtpTransport::relay(match &env::var("SMTP_HOST") {
         Ok(var) => var,
         Err(error) => {
-            eprintln!("{}1", error);
+            eprintln!("{}", error);
             return DefaultResponse {
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 message: Some(SERVER_ERROR.to_string()),

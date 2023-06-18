@@ -20,6 +20,7 @@ use index::index;
 use insert::insert;
 use verify::verify;
 
+// This function creates a router with routes, middleware, layers and so on.
 pub async fn create_routes() -> Router {
     Router::new()
         .route("/", get(index))

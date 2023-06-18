@@ -1,3 +1,5 @@
+// This is an endpoint that inserts a new user to the database.
+
 use axum::{http::StatusCode, Form};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use regex::Regex;

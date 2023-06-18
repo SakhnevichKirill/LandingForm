@@ -34,6 +34,7 @@ pub struct NewUser {
     pub password: Option<String>,
 }
 
+// This is a swagger REST API documentation generator.
 #[derive(OpenApi)]
 #[openapi(
     info(
