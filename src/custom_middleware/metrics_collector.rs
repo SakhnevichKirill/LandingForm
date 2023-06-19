@@ -1,3 +1,5 @@
+// This is a middleware that collects metrics
+
 use axum::{
     http::{Request, StatusCode},
     middleware::Next,

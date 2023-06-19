@@ -24,17 +24,40 @@ jobs:
         with:
           command: build
           args: --release --all-features
+
   unit-testing:
     name: Unit testing
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Installing toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Run unit tests
         uses: actions-rs/cargo@v1
         with:
           command: test
+
+  server-deployment:
+    name: Server deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to server
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }}"
+
+      - name: Shut down docker-compose
+        run: docker compose down
+
+      - name: Checkout branch
+        run: git checkout ${{ secrets.MAIN_BRANCH }}
+
+      - name: Pull latest changes
+        run: git pull
+
+      - name: Stop and remove all docker containers
+        run: docker rm -f $(docker ps -aq)
+
+      - name: Remove all docker images
+        run: docker rmi -f $(docker images -aq)
+
+      - name: Start docker compose
+        run: docker compose up
+
+      - name: Exit SSH connection
+        run: exit
