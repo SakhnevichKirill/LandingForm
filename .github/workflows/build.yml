@@ -46,32 +46,30 @@ jobs:
     name: Server deployment
     runs-on: ubuntu-latest
     steps:
-      - name: Install SSH Key
-        run: |
-          install -m 600 -D /dev/null ~/.ssh/id_rsa
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+      - name: Deploy server software
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Go to the working directory
+            cd ${{ secrets.WORK_DIR }}
 
-      - name: Connect to server
-        run: ssh -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }}"
+            # Shut down docker-compose
+            docker compose down
 
-      - name: Shut down docker-compose
-        run: docker compose down
+            # Checkout branch
+            git checkout ${{ secrets.MAIN_BRANCH }}
 
-      - name: Checkout branch
-        run: git checkout ${{ secrets.MAIN_BRANCH }}
+            # Pull latest changes
+            git pull
 
-      - name: Pull latest changes
-        run: git pull
+            # Stop and remove all docker containers
+            docker rm -f $(docker ps -aq)
 
-      - name: Stop and remove all docker containers
-        run: docker rm -f $(docker ps -aq)
+            # Remove all docker images
+            docker rmi -f $(docker images -aq)
 
-      - name: Remove all docker images
-        run: docker rmi -f $(docker images -aq)
-
-      - name: Start docker compose
-        run: docker compose up
-
-      - name: Exit SSH connection
-        run: exit
+            # Start docker compose
+            docker compose up
