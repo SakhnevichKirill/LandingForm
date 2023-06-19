@@ -1,4 +1,4 @@
-name: Build
+name: Build and Deploy
 
 on:
   push:
@@ -9,40 +9,40 @@ on:
       - main
 
 jobs:
-  # build:
-  #   needs: unit-testing
-  #   name: Build release version
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
-  #     - name: Installing toolchain
-  #       uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #     - name: Build the project
-  #       uses: actions-rs/cargo@v1
-  #       with:
-  #         command: build
-  #         args: --release --all-features
+  build:
+    needs: unit-testing
+    name: Build release version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Installing toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build the project
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
 
-  # unit-testing:
-  #   name: Unit testing
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
-  #     - name: Installing toolchain
-  #       uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #     - name: Run unit tests
-  #       uses: actions-rs/cargo@v1
-  #       with:
-  #         command: test
+  unit-testing:
+    name: Unit testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Installing toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run unit tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
 
   server-deployment:
-    # needs: [build, unit-testing]
+    needs: [build, unit-testing]
     name: Server deployment
     runs-on: ubuntu-latest
     steps:
@@ -72,4 +72,4 @@ jobs:
             docker rmi -f $(docker images -aq)
 
             # Start docker compose
-            docker compose up
+            docker compose up -d
