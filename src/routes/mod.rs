@@ -54,26 +54,24 @@ mod tests {
     }
 
     /// This is a helper function that sets up a mock server.
-    async fn setup_server() {
+    /// It also returns a task with the server, so it would
+    /// be feasible to kill it after finishing testing.
+    async fn setup_server() -> tokio::task::JoinHandle<()> {
         // Get router.
         let app = create_routes().await;
 
         // Run a fake Axum server.
-        tokio::spawn(async move {
-            // Ignore any errors, as the most common error is
-            // that the server is already set up and another
-            // test function attempts to initialize one more instance
-            // of the server, which is impossible.
-            match axum::Server::bind(&SERVER_ADDR.parse().unwrap())
+        let server = tokio::spawn(async move {
+            axum::Server::bind(&SERVER_ADDR.parse().unwrap())
                 .serve(app.into_make_service())
                 .await
-            {
-                Ok(_) => (),
-                Err(_) => (),
-            }
+                .unwrap();
         });
 
+        // Give some time to a server to become available.
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        server
     }
 
     /// Test an endpoint that is responsible for sending emails.
@@ -97,7 +95,7 @@ mod tests {
         };
 
         // Set up a mock server.
-        setup_server().await;
+        let server = setup_server().await;
 
         // Create a hyper client.
         let client = hyper::Client::new();
@@ -121,6 +119,9 @@ mod tests {
 
         // Assemble the response body in a struct.
         let res: ResponseBody = serde_json::from_slice(&body).unwrap();
+
+        // Kill the server.
+        server.abort();
 
         assert_eq!(res.message.unwrap(), "The email was sent successfully!");
     }
@@ -155,7 +156,7 @@ mod tests {
         println!("{}", form_data);
 
         // Set up a mock server.
-        setup_server().await;
+        let server = setup_server().await;
 
         // Set up a client.
         let client = hyper::Client::new();
@@ -180,6 +181,9 @@ mod tests {
 
         // Assemble the response body in a struct.
         let res: ResponseBody = serde_json::from_slice(&body).unwrap();
+
+        // Kill the server.
+        server.abort();
 
         assert_eq!(res.message.unwrap(), "The subscription was successful!");
     }
