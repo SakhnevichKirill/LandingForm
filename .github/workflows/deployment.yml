@@ -45,7 +45,7 @@ jobs:
           docker build -t postgres-db -f Docker/postgres.dockerfile .
 
           # Run a docker container with postgres
-          docker run -d -p 5432:5432 postgres-db
+          docker run -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} -d -p 5432:5432 postgres-db
 
       - name: Run unit tests
         uses: actions-rs/cargo@v1
