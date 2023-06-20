@@ -19,7 +19,7 @@ pub struct User {
 }
 
 // This is a struct for inserting a user in a database.
-#[derive(Insertable, Deserialize, ToSchema)]
+#[derive(Insertable, Deserialize, ToSchema, Debug)]
 #[diesel(table_name = users)]
 pub struct NewUser {
     #[schema(example = "John")]
