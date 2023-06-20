@@ -37,7 +37,7 @@ lazy_static! {
     // WARNING: Any path that does not begin with any of the approved
     // beginnings are not served.
     pub static ref ALLOWED_PATHS: HashSet<&'static str> = {
-        let allowed_paths: HashSet<&str> = HashSet::from(["/", "/metrics", "/swagger-ui", "/api-doc", "/insert"]);
+        let allowed_paths: HashSet<&str> = HashSet::from(["/", "/metrics", "/swagger-ui", "/api-doc", "/insert", "/dispatch_email"]);
         allowed_paths
     };
 }

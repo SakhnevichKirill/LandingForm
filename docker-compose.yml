@@ -31,7 +31,7 @@ services:
       context: .
       dockerfile: Docker/rust.dockerfile
     ports:
-      - 8181:8181
+      - 80:8181
     depends_on:
       - postgres
     env_file:
