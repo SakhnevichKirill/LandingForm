@@ -60,10 +60,17 @@ mod tests {
 
         // Run a fake Axum server.
         tokio::spawn(async move {
-            axum::Server::bind(&SERVER_ADDR.parse().unwrap())
+            // Ignore any errors, as the most common error is
+            // that the server is already set up and another
+            // test function attempts to initialize one more instance
+            // of the server, which is impossible.
+            match axum::Server::bind(&SERVER_ADDR.parse().unwrap())
                 .serve(app.into_make_service())
                 .await
-                .unwrap();
+            {
+                Ok(_) => (),
+                Err(_) => (),
+            }
         });
 
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
