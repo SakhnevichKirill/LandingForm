@@ -25,13 +25,14 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
+    user: '1000'
 
   rust-app:
     build:
       context: .
       dockerfile: Docker/rust.dockerfile
     ports:
-      - 80:8181
+      - '80:8181'
     depends_on:
       - postgres
     env_file:
@@ -43,6 +44,6 @@ services:
       dockerfile: Docker/postgres.dockerfile
     restart: always
     ports:
-      - 5432:5432
+      - '5432:5432'
     env_file:
       - .env
