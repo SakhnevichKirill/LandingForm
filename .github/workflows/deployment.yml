@@ -102,4 +102,4 @@ jobs:
             docker compose up -d
 
             # Restore database
-            cat dump*.sql | docker exec -i $(docker ps -q --filter "name=.*postgres.*") psql -U admin -h localhost -d manuspect
+            cat dump*.sql | docker exec -i $(docker ps -q --filter "name=.*postgres.*") psql -U admin -d manuspect
