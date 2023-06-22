@@ -98,6 +98,9 @@ jobs:
             # Start docker compose
             docker compose up -d
 
+            # Sleep for 10 seconds
+            sleep 10
+
             # Restore database
             cat dump*.sql | docker exec -i postgres psql -U admin -d manuspect
 
