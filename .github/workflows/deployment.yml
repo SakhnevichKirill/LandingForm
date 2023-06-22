@@ -78,7 +78,7 @@ jobs:
             cd ${{ secrets.WORK_DIR }}
 
             # Backup database
-            docker exec -t $(docker ps -q --filter "name=.*postgres.*" | head -n 1) pg_dumpall -c -U admin > dump_`date +%d-%m-%Y"_"%H_%M_%S`.sql
+            docker exec -t postgres pg_dumpall -c -U admin > dump_`date +%d-%m-%Y"_"%H_%M_%S`.sql
 
             # Shut down docker-compose
             docker compose down
@@ -89,20 +89,17 @@ jobs:
             # Pull latest changes
             git pull
 
-            # Stop and remove all docker containers
-            docker rm -f $(docker ps -aq)
-
             # Remove all docker images
-            docker rmi -f $(docker images -aq)
+            docker image prune -a -f
 
             # Remove all volumes
-            docker volume rm -f $(docker volume ls -q)
+            docker volume prune -f
 
             # Start docker compose
             docker compose up -d
 
             # Restore database
-            cat dump*.sql | docker exec -i $(docker ps -q --filter "name=.*postgres.*") psql -U admin -d manuspect
+            cat dump*.sql | docker exec -i postgres psql -U admin -d manuspect
 
             # Remove the generated file with database backup
             rm dump*.sql
