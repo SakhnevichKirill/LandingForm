@@ -103,3 +103,6 @@ jobs:
 
             # Remove the generated file with database backup
             rm dump*.sql
+
+        env:
+          DB_HOST: localhost

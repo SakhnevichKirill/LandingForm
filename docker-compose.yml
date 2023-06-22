@@ -41,7 +41,7 @@ services:
 
   postgres:
     container_name: postgres
-    hostname: postgres
+    network_mode: "host"
     build:
       context: .
       dockerfile: Docker/postgres.dockerfile
