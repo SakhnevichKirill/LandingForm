@@ -41,7 +41,6 @@ services:
 
   postgres:
     container_name: postgres
-    network_mode: "host"
     build:
       context: .
       dockerfile: Docker/postgres.dockerfile
@@ -50,3 +49,8 @@ services:
       - '5432:5432'
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U admin -d manuspect'"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
