@@ -48,7 +48,7 @@ use crate::{
     path = "/register",
     request_body(content = NewUser, description = "A filled out registration form", content_type = "application/x-www-form-urlencoded"),
     responses(
-        (status = StatusCode::OK, description = "A user was registered successfully", body = LoginResponse, example = json!("{\"message\": \"The email was sent successfully!\", \"token\": \"293u5429*2%23$#@jlasdfl\"}")),
+        (status = StatusCode::OK, description = "A user was registered successfully", body = LoginResponse, example = json!("{\"message\": \"SUCCESSFULLY AUTHORIZED\", \"token\": \"293u5429*2%23$#@jlasdfl\"}")),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side (The user is not inserted into the database in this case)", body = ResponseJson, example = json!("{\"message\": \"An error occurred on the server side. Email could not be sent.\", \"redirect\": null}")),
         (status = StatusCode::UNAUTHORIZED, description = "In this case the user has whether made a mistake while filling out the form, or they are already registered")
     )
@@ -237,6 +237,9 @@ pub async fn register(Form(mut user): Form<NewUser>) -> LoginResponse {
 } // fn register
 
 /// This function verifies that a form is filled out decently.
+/// It returns a status (bool), which indicates whether or not
+/// the verification has been passed, and a message that
+/// contains additional information about the result.
 fn is_valid_form(user: &NewUser) -> (bool, String) {
     // Validate username.
     if user.name.is_empty() {
@@ -294,7 +297,7 @@ fn is_valid_form(user: &NewUser) -> (bool, String) {
             return (
                 false,
                 "The password length must be between 7 and 30 characters inclusive".to_string(),
-            );
+            ); // end return
         } // end if
 
         // Check that the password contains ASCII characters only.

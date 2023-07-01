@@ -91,7 +91,7 @@ mod tests {
         #[derive(Serialize)]
         struct RequestBody {
             email: String,
-            fullname: String,
+            full_name: String,
             message: String,
             subject: String,
         }
@@ -99,10 +99,10 @@ mod tests {
         // Data to send.
         let json_data: RequestBody = RequestBody {
             email: "example@example.com".to_string(),
-            fullname: "John Johnson".to_string(),
+            full_name: "John Johnson".to_string(),
             message: "Hello, world!".to_string(),
             subject: "A great greeting!".to_string(),
-        };
+        }; // end RequestBody
 
         // Set up a mock server.
         let server = setup_server().await;
@@ -125,6 +125,8 @@ mod tests {
 
         // Get a server response.
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+        // Debug display.
         println!("{:?}", body);
 
         // Assemble the response body in a struct.
@@ -146,8 +148,8 @@ mod tests {
             email: Some("john@example.com".to_string()),
             phone_number_code: 1,
             phone_number: "1111111111".to_string(),
-            password: Some("qwerty123".to_string()),
-        };
+            password: None,
+        }; // end NewUser
 
         // Build the form data string from the new_user data structure
         let form_data = format!(
@@ -163,6 +165,7 @@ mod tests {
                 .map_or("".to_string(), |password| encode(&password).to_string()),
         );
 
+        // Debug display.
         println!("{}", form_data);
 
         // Set up a mock server.

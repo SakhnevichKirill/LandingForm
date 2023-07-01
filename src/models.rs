@@ -17,7 +17,7 @@ pub struct User {
     pub password: Option<String>,
     pub token: Option<String>,
     pub verified: bool,
-}
+} // end struct User
 
 // This is a struct for inserting a user in a database.
 #[derive(Insertable, Deserialize, ToSchema, Debug, AsChangeset)]
@@ -33,7 +33,21 @@ pub struct NewUser {
     pub phone_number: String,
     #[schema(example = "qwerty123")]
     pub password: Option<String>,
-}
+} // end struct NewUser
+
+/// This struct represents an existing user that already has
+/// a verified account and just wants to log in in the system.
+#[derive(Deserialize, ToSchema)]
+pub struct LoginUser {
+    #[schema(example = "john@gmail.com")]
+    pub email: Option<String>,
+    #[schema(example = 1)]
+    pub phone_number_code: Option<i32>,
+    #[schema(example = "9999999999")]
+    pub phone_number: Option<String>,
+    #[schema(example = "qwerty123")]
+    pub password: String,
+} // end struct LoginUser
 
 // This is a swagger REST API documentation generator.
 #[derive(OpenApi)]
@@ -52,5 +66,5 @@ pub struct NewUser {
     ),
     paths(insert, dispatch_email),
     components(schemas(NewUser, DefaultResponseJson, EmailPayload))
-)]
+)] // end openapi
 pub struct ApiDoc;

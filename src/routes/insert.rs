@@ -2,16 +2,11 @@
 
 use axum::{http::StatusCode, Form};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
-use regex::Regex;
 use serde_json;
 
 use crate::{
     models::{NewUser, User},
-    schema::users::{self, dsl::*},
-    utils::{
-        database_functions::establish_connection, responses::DefaultResponse,
-        security::hash_password,
-    },
+    utils::{database_functions::establish_connection, responses::DefaultResponse},
 };
 
 use crate::routes::dispatch_email;
@@ -31,85 +26,106 @@ use crate::routes::dispatch_email::EmailPayload;
     )
 )]
 pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
+    // This is a default error message from a server in order not to
+    // disclose some information that could be used to
+    // destroy the work of servers.
     const SERVER_ERROR: &str = "Something went wrong on the server side";
 
     // Try to establish a connection with the database.
     let mut connection: PgConnection = match establish_connection() {
+        // The connection with the database has been
+        // established successfully.
         Ok(connection) => connection,
+        // An error occurred while establishing a connection
+        // with the database.
         Err(error) => {
             eprintln!("{}", error);
             return DefaultResponse {
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 message: Some(SERVER_ERROR.to_string()),
                 redirect: None,
-            };
-        }
-    };
+            }; // end return
+        } // end Err
+    }; // end match
 
     // Check if the form is filled out properly.
-    match verify_form(&user) {
-        Ok(_) => (),
-        Err(err) => {
-            match err {
-                // The user has already been added to the database.
-                "USER_EXISTS" => {
-                    return DefaultResponse {
-                        status_code: StatusCode::UNAUTHORIZED,
-                        message: Some("The user already exists".to_string()),
-                        redirect: None,
-                    }
-                }
-                // The password is too short.
-                "TOO_SHORT_PASSWORD" => {
-                    return DefaultResponse {
-                        status_code: StatusCode::UNAUTHORIZED,
-                        message: Some("The password is too short".to_string()),
-                        redirect: None,
-                    }
-                }
-                // There is an issue with the phone number.
-                "INCORRECT_PHONE_NUMBER" => {
-                    return DefaultResponse {
-                        status_code: StatusCode::UNAUTHORIZED,
-                        message: Some("The phone number is written in a wrong format".to_string()),
-                        redirect: None,
-                    }
-                }
-                // Any other error, but this should not be called.
-                error => {
-                    eprintln!("{}", error);
-                    return DefaultResponse {
-                        status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                        message: Some(SERVER_ERROR.to_string()),
-                        redirect: None,
-                    };
-                }
-            };
-        }
-    }
+    let (status, message) = is_valid_form(&user);
 
-    println!("Form is verified");
+    // Deal with all possible result of the form validation.
+    if status != StatusCode::OK {
+        // The form has not passed validation.
+        // Inform the client about it.
+        return DefaultResponse {
+            status_code: status,
+            message: Some(message),
+            redirect: None,
+        }; // end return
+    } // end if
 
-    // Hash user's password.
-    let mut user = user;
+    // Check if the user with the same email or phone number
+    // already exists.
 
-    if let Some(passwrd) = user.password {
-        user.password = match hash_password(passwrd).await {
-            Ok(passwrd) => Some(passwrd),
-            Err(error) => {
-                eprintln!("{}", error);
+    // Check the phone number.
+    match crate::schema::users::dsl::users
+        .filter(crate::schema::users::columns::phone_number_code.eq(&user.phone_number_code))
+        .filter(crate::schema::users::columns::phone_number.eq(&user.phone_number))
+        .load::<User>(&mut connection)
+    {
+        // The data extraction has been successful.
+        Ok(users) => {
+            // Check that the array of users is empty.
+            if !users.is_empty() {
+                // The user already exists,
+                // reject the request.
                 return DefaultResponse {
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: Some(SERVER_ERROR.to_string()),
+                    status_code: StatusCode::UNAUTHORIZED,
+                    message: Some("The user with this phone number already exists".to_string()),
                     redirect: None,
-                };
-            }
-        }
-        // println!("Hashed password: {}", user.password.clone().unwrap());
-    }
+                }; // end return
+            } // end if
+        } // end Ok
+        // An error occurred while extracting data from the database.
+        Err(error) => {
+            eprintln!("{}", error);
+            return DefaultResponse {
+                status_code: StatusCode::INTERNAL_SERVER_ERROR,
+                message: Some(SERVER_ERROR.to_string()),
+                redirect: None,
+            }; // end return
+        } // end Err
+    } // end match
+
+    // Check the email.
+    match crate::schema::users::dsl::users
+        .filter(crate::schema::users::columns::email.eq(&user.email))
+        .load::<User>(&mut connection)
+    {
+        // The data extraction has been successful.
+        Ok(users) => {
+            // Check that the array of users is empty.
+            if !users.is_empty() {
+                // The user already exists,
+                // reject the request.
+                return DefaultResponse {
+                    status_code: StatusCode::UNAUTHORIZED,
+                    message: Some("The user with this email already exists".to_string()),
+                    redirect: None,
+                }; // end return
+            } // end if
+        } // end Ok
+        // An error occurred while extracting data from the database.
+        Err(error) => {
+            eprintln!("{}", error);
+            return DefaultResponse {
+                status_code: StatusCode::INTERNAL_SERVER_ERROR,
+                message: Some(SERVER_ERROR.to_string()),
+                redirect: None,
+            }; // end return
+        } // end Err
+    } // end match
 
     // Try to insert a user to the database.
-    match diesel::insert_into(users::table)
+    match diesel::insert_into(crate::schema::users::table)
         .values(&user)
         .get_result::<User>(&mut connection)
     {
@@ -120,82 +136,94 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 message: Some(SERVER_ERROR.to_string()),
                 redirect: None,
-            };
-        }
-    };
+            }; // end return
+        } // end Err
+    }; // end match
 
     // Send an email to the new user if the user specified an email.
     if let Some(user_email) = user.email {
-        // Check if the email provided is correct.
-        if is_valid_email(&user_email) {
-            // The email is valid, send the email to the user.
-            dispatch_email(
-                EmailPayload {
-                    fullname: user.name,
-                    subject: "Subscription is activated".to_string(),
-                    email: user_email,
-                    message: "Welcome to Manuspect!".to_string(),
-                }
-                .into(),
-            )
-            .await;
-        }
-    }
+        // The email should be valid, send the email to the user.
+        dispatch_email(
+            EmailPayload {
+                full_name: user.name,
+                subject: "Subscription is activated".to_string(),
+                email: user_email,
+                message: "Welcome to Manuspect!".to_string(),
+            }
+            .into(),
+        )
+        .await;
+    } // end if
 
     // Everything went successfully, return OK to the user.
     DefaultResponse {
         status_code: StatusCode::OK,
         message: Some("The subscription was successful!".to_string()),
         redirect: None,
-    }
+    } // end DefaultResponse
 } // fn insert
 
-/// This function verifies an email address.
-fn is_valid_email(test_email: &str) -> bool {
-    // Define the regular expression pattern for email validation
-    let pattern =
-        Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
-            .unwrap();
+/// This function verifies that a form is filled out decently.
+/// It returns a status (StatusCode), which indicates whether or not
+/// the verification has been passed, and a message that
+/// contains additional information about the result.
+fn is_valid_form(user: &NewUser) -> (StatusCode, String) {
+    // Validate username.
+    if user.name.is_empty() {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "The \"name\" field cannot be empty".to_string(),
+        ); // end return
+    } // end if
 
-    // Check if the email matches the pattern
-    pattern.is_match(test_email)
-} // fn is_valid_email
+    // Validate email (if it is supplied).
+    if let Some(email) = user.email.clone() {
+        if !email.contains("@") {
+            // Email has to contain "@" symbol.
+            return (
+                StatusCode::UNAUTHORIZED,
+                "Email has to contain \"@\" symbol".to_string(),
+            ); // end return
+        } // end if
+        if !email.contains(".") {
+            // Email has to contain "." symbol.
+            return (
+                StatusCode::UNAUTHORIZED,
+                "Email has to contain \".\" symbol".to_string(),
+            ); // end return
+        } // end if
+    } // end if
 
-// This function verifies a submitted form.
-fn verify_form(user: &NewUser) -> Result<(), &'static str> {
-    // Establish a new connection with the database.
-    let connection = &mut establish_connection().map_err(|error| {
-        println!("{}", error);
-        "INTERNAL_SERVER_ERROR"
-    })?;
+    // Validate phone number code.
+    if user.phone_number_code == 0 || user.phone_number_code > 999 {
+        // The phone number code is invalid.
+        return (
+            StatusCode::UNAUTHORIZED,
+            "The phone number code is invalid".to_string(),
+        ); // end return
+    } // end if
 
-    // Check that the phone number is a number.
-    let phone_num = user.phone_number.clone();
+    // Validate phone number.
+    if user.phone_number.len() < 4 {
+        // The phone number is too short.
+        return (
+            StatusCode::UNAUTHORIZED,
+            "The phone number is too short".to_string(),
+        ); // end return
+    } else {
+        // Traverse all the symbols in a phone number and make
+        // sure that they are all decimal digits.
+        for symbol in user.phone_number.chars() {
+            // Check if the current symbol is a valid digit.
+            if !symbol.is_digit(10) {
+                // This is not a valid decimal digit.
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    "The phone number is not valid".to_string(),
+                ); // end return
+            } // end if
+        } // end for
+    } // end if
 
-    phone_num
-        .parse::<i64>()
-        .map_err(|_error| "INCORRECT_PHONE_NUMBER")?;
-
-    // Make sure that the user with the same phone number does not exist.
-    let result: Vec<User> = users
-        .filter(users::columns::phone_number_code.eq(user.phone_number_code))
-        .filter(users::columns::phone_number.eq(&user.phone_number))
-        .load::<User>(connection)
-        .map_err(|error| {
-            println!("{}", error);
-            "INTERNAL_SERVER_ERROR"
-        })?;
-
-    // If a user was found, then this user already exists.
-    if result.len() > 0 {
-        return Err("USER_EXISTS");
-    }
-
-    if let Some(passwrd) = &user.password {
-        if passwrd.len() < 7 {
-            return Err("TOO_SHORT_PASSWORD");
-        }
-    }
-
-    Ok(())
-} // fn verify_form
+    (StatusCode::OK, "".to_string())
+} // end fn is_valid_form

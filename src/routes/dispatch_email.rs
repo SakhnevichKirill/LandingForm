@@ -15,7 +15,7 @@ use crate::utils::responses::DefaultResponse;
 #[derive(Deserialize, ToSchema)]
 pub struct EmailPayload {
     #[schema(example = "John Johnson")]
-    pub fullname: String,
+    pub full_name: String,
     #[schema(example = "Login confirmation")]
     pub subject: String,
     #[schema(example = "johnjohnson@gmail.com")]
@@ -41,7 +41,7 @@ pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultRespons
 
     // Destructure the HTTP request body.
     let EmailPayload {
-        fullname,
+        full_name,
         subject,
         email,
         message,
@@ -49,7 +49,7 @@ pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultRespons
 
     // Construct email config.
     let from_address = String::from("Manuspect <manuspect.prod@gmail.com>");
-    let to_address = format!("{fullname} <{email}>");
+    let to_address = format!("{full_name} <{email}>");
     let reply_to = String::from("Manuspect <manuspect.prod@gmail.com>");
     let email_subject = subject;
 
@@ -129,4 +129,4 @@ pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultRespons
         message: Some("The email was sent successfully!".to_string()),
         redirect: None,
     }
-}
+} // fn dispatch_email
