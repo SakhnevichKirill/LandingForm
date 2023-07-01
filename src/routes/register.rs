@@ -27,20 +27,13 @@ use crate::{
 ///
 /// Form template:
 ///
-/// ```rust
 /// pub struct NewUser {
-///     #[schema(example = "John")]
 ///     pub name: String,
-///     #[schema(example = "john@gmail.com")]
 ///     pub email: Option<String>,
-///     #[schema(example = 1)]
 ///     pub phone_number_code: i32,
-///     #[schema(example = "9999999999")]
 ///     pub phone_number: String,
-///     #[schema(example = "qwerty123")]
 ///     pub password: Option<String>,
 /// }
-/// ```
 ///
 #[utoipa::path(
     post,

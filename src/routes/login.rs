@@ -14,6 +14,16 @@ use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 /// It receives a form filled out by the client and in case of
 /// success returns a web token that can be used for maintaining
 /// a session without logging in for a some time.
+///
+/// Form template:
+///
+/// pub struct LoginUser {
+///     pub email: Option<String>,
+///     pub phone_number_code: Option<i32>,
+///     pub phone_number: Option<String>,
+///     pub password: String,
+/// }
+///
 #[utoipa::path(
     post,
     tag = "Login",

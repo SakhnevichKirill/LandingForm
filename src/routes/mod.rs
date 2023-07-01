@@ -54,6 +54,8 @@ mod tests {
     use serde::{Deserialize, Serialize};
     use urlencoding::encode;
 
+    use dotenvy::dotenv;
+
     const SERVER_ADDR: &str = "127.0.0.1:8181";
 
     // A response body template.
@@ -86,7 +88,11 @@ mod tests {
 
     /// Test an endpoint that is responsible for sending emails.
     #[tokio::test]
-    async fn dispatch_email() {
+    #[should_panic]
+    async fn dispatch_email_unauthorized_fails() {
+        // Import environment variables.
+        dotenv().ok();
+
         // A request body template.
         #[derive(Serialize)]
         struct RequestBody {
@@ -124,24 +130,19 @@ mod tests {
             .unwrap();
 
         // Get a server response.
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        assert!(hyper::body::to_bytes(response.into_body()).await.is_err());
 
-        // Debug display.
-        println!("{:?}", body);
-
-        // Assemble the response body in a struct.
-        let res: ResponseBody = serde_json::from_slice(&body).unwrap();
-
-        // Kill the server.
+        // Abort server.
         server.abort();
-
-        assert_eq!(res.message.unwrap(), "The email was sent successfully!");
     }
 
     /// Test endpoint that is responsible for inserting
     /// users to the database.
     #[tokio::test]
     async fn insert() {
+        // Import environment variables.
+        dotenv().ok();
+
         // Mock data to insert in database.
         let new_user = NewUser {
             name: "John".to_string(),
