@@ -2,7 +2,6 @@ use crate::models::User;
 use axum::http::StatusCode;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use dotenvy::dotenv;
 use std::env;
 
 use crate::models::NewUser;
@@ -10,8 +9,6 @@ use crate::schema::users;
 
 /// This function tries to establish a connection with a database.
 pub fn establish_connection() -> Result<PgConnection, StatusCode> {
-    dotenv().ok();
-
     let database_url = env::var("DATABASE_URL").map_err(|error| {
         eprintln!("{}", error);
         StatusCode::INTERNAL_SERVER_ERROR

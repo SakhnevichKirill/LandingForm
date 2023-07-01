@@ -1,7 +1,7 @@
 use crate::routes::dispatch_email::{EmailPayload, __path_dispatch_email};
 use crate::routes::insert::__path_insert;
 use crate::schema::users;
-use crate::utils::responses::ResponseJson;
+use crate::utils::responses::DefaultResponseJson;
 use diesel::prelude::*;
 use serde::Deserialize;
 use utoipa::{OpenApi, ToSchema};
@@ -16,10 +16,11 @@ pub struct User {
     pub phone_number: String,
     pub password: Option<String>,
     pub token: Option<String>,
+    pub verified: bool,
 }
 
 // This is a struct for inserting a user in a database.
-#[derive(Insertable, Deserialize, ToSchema, Debug)]
+#[derive(Insertable, Deserialize, ToSchema, Debug, AsChangeset)]
 #[diesel(table_name = users)]
 pub struct NewUser {
     #[schema(example = "John")]
@@ -50,6 +51,6 @@ pub struct NewUser {
         (url = "http://95.165.88.39", description = "This is a remote server for testing"),
     ),
     paths(insert, dispatch_email),
-    components(schemas(NewUser, ResponseJson, EmailPayload))
+    components(schemas(NewUser, DefaultResponseJson, EmailPayload))
 )]
 pub struct ApiDoc;

@@ -9,5 +9,6 @@ diesel::table! {
         phone_number -> Varchar,
         password -> Nullable<Varchar>,
         token -> Nullable<Varchar>,
+        verified -> Bool,
     }
 }

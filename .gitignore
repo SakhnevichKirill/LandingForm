@@ -21,3 +21,6 @@ Cargo.lock
 
 # Grafana data
 monitoring/grafana/data/
+
+# Helper files
+Rustdesk

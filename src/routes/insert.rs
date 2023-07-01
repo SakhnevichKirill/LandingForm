@@ -56,10 +56,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
                     return DefaultResponse {
                         status_code: StatusCode::UNAUTHORIZED,
                         message: Some("The user already exists".to_string()),
-                        redirect: Some(
-                            "http://127.0.0.1:5500/frontend/HTML/already_subscribed.html"
-                                .to_string(),
-                        ),
+                        redirect: None,
                     }
                 }
                 // The password is too short.
@@ -67,10 +64,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
                     return DefaultResponse {
                         status_code: StatusCode::UNAUTHORIZED,
                         message: Some("The password is too short".to_string()),
-                        redirect: Some(
-                            "http://127.0.0.1:5500/frontend/HTML/too_short_password.html"
-                                .to_string(),
-                        ),
+                        redirect: None,
                     }
                 }
                 // There is an issue with the phone number.
@@ -78,10 +72,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
                     return DefaultResponse {
                         status_code: StatusCode::UNAUTHORIZED,
                         message: Some("The phone number is written in a wrong format".to_string()),
-                        redirect: Some(
-                            "http://127.0.0.1:5500/frontend/HTML/incorrect_phone_number.html"
-                                .to_string(),
-                        ),
+                        redirect: None,
                     }
                 }
                 // Any other error, but this should not be called.
@@ -155,9 +146,9 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
     DefaultResponse {
         status_code: StatusCode::OK,
         message: Some("The subscription was successful!".to_string()),
-        redirect: Some("http://127.0.0.1:5500/frontend/HTML/subscribed.html".to_string()),
+        redirect: None,
     }
-}
+} // fn insert
 
 /// This function verifies an email address.
 fn is_valid_email(test_email: &str) -> bool {
@@ -168,7 +159,7 @@ fn is_valid_email(test_email: &str) -> bool {
 
     // Check if the email matches the pattern
     pattern.is_match(test_email)
-}
+} // fn is_valid_email
 
 // This function verifies a submitted form.
 fn verify_form(user: &NewUser) -> Result<(), &'static str> {
@@ -207,4 +198,4 @@ fn verify_form(user: &NewUser) -> Result<(), &'static str> {
     }
 
     Ok(())
-}
+} // fn verify_form

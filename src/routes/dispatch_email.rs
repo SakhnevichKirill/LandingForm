@@ -2,7 +2,6 @@
 // emails.
 
 use axum::{http::StatusCode, Json};
-use dotenvy::dotenv;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::Message;
 use lettre::SmtpTransport;
@@ -38,7 +37,6 @@ pub struct EmailPayload {
     )
 )]
 pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultResponse {
-    dotenv().ok();
     const SERVER_ERROR: &str = "Something went wrong on the server side";
 
     // Destructure the HTTP request body.

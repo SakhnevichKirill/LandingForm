@@ -10,6 +10,8 @@ use prometheus::{Encoder, TextEncoder};
 use crate::utils::lazy_static::{self, ALLOWED_PATHS};
 
 /// This is a middleware that collects all the metrics.
+/// NOTE: It also protects the application from trying
+/// to serve nonexistent endpoints.
 pub async fn metrics_collector<B>(req: Request<B>, next: Next<B>) -> Result<Response, StatusCode> {
     // Extract the method and the path of a request.
     let request_method = req.method().to_string();
