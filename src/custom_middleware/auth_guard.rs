@@ -2,25 +2,27 @@
 // access to some resources.
 
 use axum::{
+    extract::State,
     headers::{authorization::Bearer, Authorization},
     http::{Request, StatusCode},
     middleware::Next,
     response::Response,
     TypedHeader,
 };
-use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods, RunQueryDsl};
+use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods};
+use diesel_async::RunQueryDsl;
 
 use crate::{
     models::User,
+    routes::AppState,
     schema::users::dsl,
-    utils::{
-        database_functions::establish_connection, jwt::is_valid_jwt, responses::DefaultResponse,
-    },
+    utils::{jwt::is_valid_jwt, responses::DefaultResponse},
 };
 
 /// This function is middleware that protects some endpoints from unauthorized
 /// access.
 pub async fn auth_guard<B>(
+    State(app_state): State<AppState>,
     TypedHeader(token): TypedHeader<Authorization<Bearer>>,
     mut req: Request<B>,
     next: Next<B>,
@@ -33,8 +35,8 @@ pub async fn auth_guard<B>(
     // Load token from the provided header.
     let token = token.token().to_owned();
 
-    // Establish a connections with a database.
-    let mut conn = match establish_connection() {
+    // Try to allocate a connection to the database from the pool.
+    let mut conn = match app_state.pool.get().await {
         Ok(conn) => conn,
         Err(error) => {
             eprintln!("{}", error);
@@ -50,6 +52,7 @@ pub async fn auth_guard<B>(
     let mut users: Vec<User> = match dsl::users
         .filter(crate::schema::users::columns::token.eq(&token))
         .load::<User>(&mut conn)
+        .await
     {
         // Everything went well and the database provided a response.
         Ok(users) => users,

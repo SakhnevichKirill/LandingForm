@@ -1,18 +1,27 @@
 // This is an endpoint that inserts a new user to the database.
+// NOTE: This endpoint is used to add unverified accounts
+// to the database.
 
-use axum::{http::StatusCode, Form};
-use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use axum::{extract::State, http::StatusCode, Form};
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use serde_json;
 
 use crate::{
     models::{NewUser, User},
-    utils::{database_functions::establish_connection, responses::DefaultResponse},
+    utils::responses::DefaultResponse,
 };
 
 use crate::routes::dispatch_email;
 use crate::routes::dispatch_email::EmailPayload;
 
+use super::AppState;
+
 /// Add a new user to the database.
+/// NOTE: This function is used to add the user
+/// to the database with the minimum information
+/// provided. This function creates an unverified
+/// account for the client.
 ///
 #[utoipa::path(
     post,
@@ -25,14 +34,17 @@ use crate::routes::dispatch_email::EmailPayload;
         (status = StatusCode::UNAUTHORIZED, description = "The user already exists in the database, no need to add them again", body = ResponseJson, example = json!("{\"message\": \"The user has already been added, no need to do that again.\", \"redirect\": \"http://localhost/user_added.html\"}"))
     )
 )]
-pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
+pub async fn insert(
+    State(app_state): State<AppState>,
+    Form(user): Form<NewUser>,
+) -> DefaultResponse {
     // This is a default error message from a server in order not to
     // disclose some information that could be used to
     // destroy the work of servers.
     const SERVER_ERROR: &str = "Something went wrong on the server side";
 
-    // Try to establish a connection with the database.
-    let mut connection: PgConnection = match establish_connection() {
+    // Try to allocate a connection with the database from the pool.
+    let mut connection = match app_state.pool.get().await {
         // The connection with the database has been
         // established successfully.
         Ok(connection) => connection,
@@ -70,6 +82,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
         .filter(crate::schema::users::columns::phone_number_code.eq(&user.phone_number_code))
         .filter(crate::schema::users::columns::phone_number.eq(&user.phone_number))
         .load::<User>(&mut connection)
+        .await
     {
         // The data extraction has been successful.
         Ok(users) => {
@@ -99,6 +112,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
     match crate::schema::users::dsl::users
         .filter(crate::schema::users::columns::email.eq(&user.email))
         .load::<User>(&mut connection)
+        .await
     {
         // The data extraction has been successful.
         Ok(users) => {
@@ -128,6 +142,7 @@ pub async fn insert(Form(user): Form<NewUser>) -> DefaultResponse {
     match diesel::insert_into(crate::schema::users::table)
         .values(&user)
         .get_result::<User>(&mut connection)
+        .await
     {
         Ok(_) => (),
         Err(error) => {

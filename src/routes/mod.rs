@@ -3,7 +3,6 @@ mod index;
 pub mod insert;
 pub mod login;
 pub mod register;
-pub mod verify;
 
 use axum::{
     middleware,
@@ -11,10 +10,14 @@ use axum::{
     Router,
 };
 
+use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
+
 use crate::custom_middleware::{
     auth_guard::auth_guard,
     metrics_collector::{metrics_collector, metrics_display},
 };
+
 use crate::models::ApiDoc;
 
 use utoipa::OpenApi;
@@ -25,22 +28,51 @@ use index::index;
 use insert::insert;
 use login::login;
 use register::register;
-use verify::verify;
+
+/// This struct contains some information that should be
+/// passed to endpoints with the client requests.
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: Pool<AsyncPgConnection>,
+} // end struct AppState
+
+/// This function creates an AppState for the Router.
+fn create_app_state() -> AppState {
+    // create a new connection pool with the default config
+    let config = AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(
+        std::env::var("DATABASE_URL")
+            .expect("Failed to find the environment variable DATABASE_URL"),
+    ); // end config
+
+    // Create a connection pool.
+    let pool = Pool::builder(config)
+        .build()
+        .expect("Failed to create a pool of connections to a database");
+
+    // Return the required AppState.
+    AppState { pool }
+} // end fn create_app_state
 
 /// This function creates a router with routes, middleware, layers and so on.
 pub async fn create_routes() -> Router {
+    // Create app state.
+    let app_state = create_app_state();
+
     Router::new()
         .route("/dispatch_email", post(dispatch_email))
         .route("/metrics", get(metrics_display))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi()))
-        .layer(middleware::from_fn(auth_guard))
+        .layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            auth_guard,
+        ))
         .route("/", get(index))
-        .route("/verify", post(verify))
         .route("/insert", post(insert))
         .route("/register", post(register))
         .route("/login", post(login))
         .layer(middleware::from_fn(metrics_collector))
-}
+        .with_state(app_state)
+} // end fn create_routes
 
 /// These are endpoint tests
 ///

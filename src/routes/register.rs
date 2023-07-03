@@ -3,14 +3,14 @@ use crate::{
     schema::users::dsl,
     utils::{jwt::create_jwt, security::hash_password},
 };
-use axum::http::StatusCode;
 use axum::Form;
-use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods, RunQueryDsl};
+use axum::{extract::State, http::StatusCode};
+use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods};
+use diesel_async::RunQueryDsl;
 
-use crate::{
-    models::NewUser,
-    utils::{database_functions::establish_connection, responses::LoginResponse},
-};
+use crate::{models::NewUser, utils::responses::LoginResponse};
+
+use super::AppState;
 
 /// This function servers a registration endpoint.
 ///
@@ -46,7 +46,10 @@ use crate::{
         (status = StatusCode::UNAUTHORIZED, description = "In this case the user has whether made a mistake while filling out the form, or they are already registered")
     )
 )]
-pub async fn register(Form(mut user): Form<NewUser>) -> LoginResponse {
+pub async fn register(
+    State(app_state): State<AppState>,
+    Form(mut user): Form<NewUser>,
+) -> LoginResponse {
     // This is a default error message from a server in order not to
     // disclose some information that could be used to
     // destroy the work of servers.
@@ -60,9 +63,11 @@ pub async fn register(Form(mut user): Form<NewUser>) -> LoginResponse {
     // the current client.
     let user_id: i32;
 
-    // Establish a connections with a database.
-    let mut conn = match establish_connection() {
+    // Get a database connection from the pool.
+    let mut conn = match app_state.pool.get().await {
+        // The connection was allocated successfully.
         Ok(conn) => conn,
+        // An error occurred while allocating a connection.
         Err(error) => {
             eprintln!("{}", error);
             return LoginResponse {
@@ -111,6 +116,7 @@ pub async fn register(Form(mut user): Form<NewUser>) -> LoginResponse {
         .filter(crate::schema::users::columns::phone_number_code.eq(&user.phone_number_code))
         .filter(crate::schema::users::columns::phone_number.eq(&user.phone_number))
         .load::<User>(&mut conn)
+        .await
     {
         Ok(res) => res,
         Err(error) => {
@@ -156,6 +162,7 @@ pub async fn register(Form(mut user): Form<NewUser>) -> LoginResponse {
             .filter(crate::schema::users::columns::id.eq(user_id))
             .set(&user)
             .execute(&mut conn)
+            .await
             .is_err()
         {
             // An error occurred while updating data in a database.
@@ -174,6 +181,7 @@ pub async fn register(Form(mut user): Form<NewUser>) -> LoginResponse {
         user_id = if let Ok(inserted_user) = diesel::insert_into(crate::schema::users::table)
             .values(&user)
             .get_result::<User>(&mut conn)
+            .await
         {
             // The user has been inserted successfully.
             inserted_user.id
@@ -211,6 +219,7 @@ pub async fn register(Form(mut user): Form<NewUser>) -> LoginResponse {
         .filter(crate::schema::users::columns::id.eq(user_id))
         .set((dsl::token.eq(&token), dsl::verified.eq(true)))
         .execute(&mut conn)
+        .await
         .is_err()
     {
         // An error occurred while updating the data.
