@@ -2,13 +2,12 @@ use axum::{extract::State, http::StatusCode, Form};
 
 use crate::{
     models::{LoginUser, User},
+    routes::AppState,
     utils::{jwt::create_jwt, responses::LoginResponse, security::hash_password},
 };
 
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-
-use super::AppState;
 
 /// This is a function that serves login endpoint on the server.
 /// It receives a form filled out by the client and in case of
@@ -27,11 +26,11 @@ use super::AppState;
 #[utoipa::path(
     post,
     tag = "Login",
-    path = "/login",
+    path = "/auth/login",
     request_body(content = LoginUser, description = "A filled out login form", content_type = "application/x-www-form-urlencoded"),
     responses(
-        (status = StatusCode::OK, description = "A user has logged in successfully", body = LoginResponse, example = json!("{\"message\": \"SUCCESSFULLY AUTHORIZED\", \"token\": \"293u5429*2%23$#@jlasdfl\"}")),
-        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side (The user is not inserted into the database in this case)", body = ResponseJson, example = json!("{\"message\": \"An error occurred on the server side. Email could not be sent.\", \"redirect\": null}")),
+        (status = StatusCode::OK, description = "A user has logged in successfully", body = LoginResponseJson, example = json!("{\"message\": \"SUCCESSFULLY AUTHORIZED\", \"token\": \"293u5429*2%23$#@stuff\"}")),
+        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side (The user is not inserted into the database in this case)", body = DefaultResponseJson, example = json!("{\"message\": \"An error occurred on the server side. Email could not be sent.\", \"redirect\": null}")),
         (status = StatusCode::UNAUTHORIZED, description = "In this case the user has either made a mistake while filling out the form. \
         E.g. they could specify login or password or both in a wrong way")
     )

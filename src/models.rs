@@ -1,7 +1,9 @@
+use crate::routes::auth::login::__path_login;
+use crate::routes::auth::register::__path_register;
 use crate::routes::dispatch_email::{EmailPayload, __path_dispatch_email};
 use crate::routes::insert::__path_insert;
 use crate::schema::users;
-use crate::utils::responses::DefaultResponseJson;
+use crate::utils::responses::{DefaultResponseJson, LoginResponseJson};
 use diesel::prelude::*;
 use serde::Deserialize;
 use utoipa::{OpenApi, ToSchema};
@@ -64,7 +66,7 @@ pub struct LoginUser {
         (url = "http://localhost", description = "This is a local server for testing"),
         (url = "http://95.165.88.39", description = "This is a remote server for testing"),
     ),
-    paths(insert, dispatch_email),
-    components(schemas(NewUser, DefaultResponseJson, EmailPayload))
+    paths(insert, dispatch_email, register, login),
+    components(schemas(NewUser, DefaultResponseJson, EmailPayload, DefaultResponseJson, LoginUser, LoginResponseJson))
 )] // end openapi
 pub struct ApiDoc;

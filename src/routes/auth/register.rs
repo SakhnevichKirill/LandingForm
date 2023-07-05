@@ -1,5 +1,6 @@
 use crate::{
     models::User,
+    routes::AppState,
     schema::users::dsl,
     utils::{jwt::create_jwt, security::hash_password},
 };
@@ -9,8 +10,6 @@ use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods};
 use diesel_async::RunQueryDsl;
 
 use crate::{models::NewUser, utils::responses::LoginResponse};
-
-use super::AppState;
 
 /// This function servers a registration endpoint.
 ///
@@ -38,11 +37,11 @@ use super::AppState;
 #[utoipa::path(
     post,
     tag = "Registration",
-    path = "/register",
+    path = "/auth/register",
     request_body(content = NewUser, description = "A filled out registration form", content_type = "application/x-www-form-urlencoded"),
     responses(
-        (status = StatusCode::OK, description = "A user was registered successfully", body = LoginResponse, example = json!("{\"message\": \"SUCCESSFULLY AUTHORIZED\", \"token\": \"293u5429*2%23$#@jlasdfl\"}")),
-        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side (The user is not inserted into the database in this case)", body = ResponseJson, example = json!("{\"message\": \"An error occurred on the server side. Email could not be sent.\", \"redirect\": null}")),
+        (status = StatusCode::OK, description = "A user was registered successfully", body = LoginResponseJson, example = json!("{\"message\": \"SUCCESSFULLY AUTHORIZED\", \"token\": \"293u5429*2%23$#@jlasdfl\"}")),
+        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side (The user is not inserted into the database in this case)", body = DefaultResponseJson, example = json!("{\"message\": \"An error occurred on the server side. Email could not be sent.\", \"redirect\": null}")),
         (status = StatusCode::UNAUTHORIZED, description = "In this case the user has whether made a mistake while filling out the form, or they are already registered")
     )
 )]
@@ -193,6 +192,24 @@ pub async fn register(
                 token: None,
             }; // end return
         }; // end if let
+    } // end if
+
+    // Assign the basic role to the user.
+    if diesel::insert_into(crate::schema::users_roles::table)
+        .values((
+            crate::schema::users_roles::columns::user_id.eq(user_id),
+            crate::schema::users_roles::role_id.eq(1),
+        ))
+        .execute(&mut conn)
+        .await
+        .is_err()
+    {
+        // An error occurred while inserting data in the database.
+        return LoginResponse {
+            status_code: StatusCode::INTERNAL_SERVER_ERROR,
+            message: SERVER_ERROR.to_string(),
+            token: None,
+        }; // end return
     } // end if
 
     // The user is registered.

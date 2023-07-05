@@ -1,0 +1,11 @@
+# Custom Dictionary Words
+dotenvy
+dotenv
+utoipa
+Insertable
+openapi
+deadpool
+urlencoding
+lettre
+manuspect
+creds

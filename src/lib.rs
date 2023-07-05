@@ -1,6 +1,6 @@
 use routes::create_routes;
 
-pub mod custom_middleware;
+pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod schema;

@@ -20,7 +20,7 @@ pub async fn metrics_collector<B>(req: Request<B>, next: Next<B>) -> Result<Resp
 
     // Check if the request path has to be ignored.
     if let Some(first_part) = request_path_beginning {
-        let first_part = "/".to_owned() + first_part;
+        let first_part = format!("/{}", first_part);
         if ALLOWED_PATHS.contains(first_part.as_str()) {
             // Record the new data.
 
@@ -42,10 +42,10 @@ pub async fn metrics_collector<B>(req: Request<B>, next: Next<B>) -> Result<Resp
                 histogram_timer.stop_and_record();
             } else {
                 histogram_timer.stop_and_discard();
-            }
+            } // end if
             return Ok(req_result);
-        }
-    }
+        } // end if
+    } // end if
 
     Err(StatusCode::NOT_FOUND)
 }

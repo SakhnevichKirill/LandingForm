@@ -32,8 +32,8 @@ pub struct EmailPayload {
     path = "/dispatch_email",
     request_body(content = EmailPayload, description = "Some information about the email sent", content_type = "application/json"),
     responses(
-        (status = StatusCode::OK, description = "The email was sent successfully", body = ResponseJson, example = json!("{\"message\": \"The email was sent successfully!\", \"redirect\": \"http://localhost/success.html\"}")),
-        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side (Email is not sent in this case)", body = ResponseJson, example = json!("{\"message\": \"An error occurred on the server side. Email could not be sent.\", \"redirect\": null}")),
+        (status = StatusCode::OK, description = "The email was sent successfully", body = DefaultResponseJson, example = json!("{\"message\": \"The email was sent successfully!\", \"redirect\": \"http://localhost/success.html\"}")),
+        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side (Email is not sent in this case)", body = DefaultResponseJson, example = json!("{\"message\": \"An error occurred on the server side. Email could not be sent.\", \"redirect\": null}")),
     )
 )]
 pub async fn dispatch_email(Json(payload): Json<EmailPayload>) -> DefaultResponse {

@@ -1,8 +1,7 @@
+pub mod auth;
 pub mod dispatch_email;
 mod index;
 pub mod insert;
-pub mod login;
-pub mod register;
 
 use axum::{
     middleware,
@@ -13,7 +12,9 @@ use axum::{
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
 use diesel_async::{pooled_connection::deadpool::Pool, AsyncPgConnection};
 
-use crate::custom_middleware::{
+use std::collections::{HashMap, HashSet};
+
+use crate::middleware::{
     auth_guard::auth_guard,
     metrics_collector::{metrics_collector, metrics_display},
 };
@@ -23,18 +24,45 @@ use crate::models::ApiDoc;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use std::sync::{Arc, RwLock};
+
 use dispatch_email::dispatch_email;
 use index::index;
 use insert::insert;
-use login::login;
-use register::register;
+
+use self::auth::get_auth_router;
 
 /// This struct contains some information that should be
 /// passed to endpoints with the client requests.
 #[derive(Clone)]
 pub struct AppState {
+    // This is a pool of connections to the database.
     pub pool: Pool<AsyncPgConnection>,
+    // This is a mapping of routes to the set of Roles,
+    // that can access the route.
+    pub allowed_roles: Arc<RwLock<HashMap<String, HashSet<String>>>>,
 } // end struct AppState
+
+/// This function generates a default HashMap with
+/// application routes accessibility.
+fn get_default_allowed_roles() -> HashMap<String, HashSet<String>> {
+    // Initialize the HashMap.
+    let mut allowed_roles: HashMap<String, HashSet<String>> = HashMap::new();
+
+    // Manually add the restrictions on the routes.
+    allowed_roles.insert("/metrics".to_string(), HashSet::new());
+
+    allowed_roles
+        .get_mut("/metrics")
+        .unwrap()
+        .insert("Admin".to_string());
+    allowed_roles
+        .get_mut("/metrics")
+        .unwrap()
+        .insert("Manager".to_string());
+
+    allowed_roles
+} // end fn get_default_allowed_roles
 
 /// This function creates an AppState for the Router.
 fn create_app_state() -> AppState {
@@ -49,27 +77,38 @@ fn create_app_state() -> AppState {
         .build()
         .expect("Failed to create a pool of connections to a database");
 
+    // Get allowed roles for the routes.
+    let allowed_roles = Arc::new(RwLock::new(get_default_allowed_roles()));
+
     // Return the required AppState.
-    AppState { pool }
+    AppState {
+        pool,
+        allowed_roles,
+    }
 } // end fn create_app_state
 
 /// This function creates a router with routes, middleware, layers and so on.
+///
+/// WARNING: If any of the routes added do not work,
+/// check utils/lazy_static.rs file and look at ALLOWED_PATHS.
+/// If a new route is absent there, it is necessary to add it to this
+/// variable.
 pub async fn create_routes() -> Router {
     // Create app state.
     let app_state = create_app_state();
 
+    // Create and assemble router.
     Router::new()
         .route("/dispatch_email", post(dispatch_email))
         .route("/metrics", get(metrics_display))
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi()))
         .layer(middleware::from_fn_with_state(
             app_state.clone(),
             auth_guard,
         ))
         .route("/", get(index))
         .route("/insert", post(insert))
-        .route("/register", post(register))
-        .route("/login", post(login))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi()))
+        .nest("/auth", get_auth_router().with_state(app_state.clone()))
         .layer(middleware::from_fn(metrics_collector))
         .with_state(app_state)
 } // end fn create_routes
@@ -95,7 +134,7 @@ mod tests {
     struct ResponseBody {
         message: Option<String>,
         _redirect: Option<String>,
-    }
+    } // end struct ResponseBody
 
     /// This is a helper function that sets up a mock server.
     /// It also returns a task with the server, so it would
@@ -116,7 +155,7 @@ mod tests {
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         server
-    }
+    } // end fn setup_server
 
     /// Test an endpoint that is responsible for sending emails.
     #[tokio::test]

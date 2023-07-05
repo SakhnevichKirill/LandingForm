@@ -24,3 +24,9 @@ monitoring/grafana/data/
 
 # Helper files
 Rustdesk
+
+# Environment variables for bash/zsh scripts.
+bash/mac/env.sh
+
+# Macros target
+macros/target
