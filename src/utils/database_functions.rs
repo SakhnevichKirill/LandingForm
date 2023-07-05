@@ -1,12 +1,15 @@
-use crate::models::NewUser;
 use crate::models::User;
+use crate::routes::auth::dto::register_dto::RegisterUserDto;
 use crate::schema::users;
 use axum::http::StatusCode;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
 /// This function tries to insert a new user in a database.
-pub fn insert_user(connection: &mut PgConnection, new_user: NewUser) -> Result<User, StatusCode> {
+pub fn insert_user(
+    connection: &mut PgConnection,
+    new_user: RegisterUserDto,
+) -> Result<User, StatusCode> {
     diesel::insert_into(users::table)
         .values(&new_user)
         .get_result(connection)

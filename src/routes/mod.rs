@@ -30,8 +30,6 @@ use dispatch_email::dispatch_email;
 use index::index;
 use insert::insert;
 
-use self::auth::get_auth_router;
-
 /// This struct contains some information that should be
 /// passed to endpoints with the client requests.
 #[derive(Clone)]
@@ -108,7 +106,10 @@ pub async fn create_routes() -> Router {
         .route("/", get(index))
         .route("/insert", post(insert))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi()))
-        .nest("/auth", get_auth_router().with_state(app_state.clone()))
+        .nest(
+            "/auth",
+            auth::init_auth_router().with_state(app_state.clone()),
+        )
         .layer(middleware::from_fn(metrics_collector))
         .with_state(app_state)
 } // end fn create_routes
@@ -117,7 +118,8 @@ pub async fn create_routes() -> Router {
 ///
 #[cfg(test)]
 mod tests {
-    use crate::models::NewUser;
+
+    use crate::routes::auth::dto::register_dto::RegisterUserDto;
 
     use super::*;
     use axum::{body::Body, http::Request};
@@ -215,7 +217,7 @@ mod tests {
         dotenv().ok();
 
         // Mock data to insert in database.
-        let new_user = NewUser {
+        let new_user = RegisterUserDto {
             name: "John".to_string(),
             email: Some("john@example.com".to_string()),
             phone_number_code: 1,

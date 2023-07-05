@@ -1,17 +1,15 @@
-use axum::{routing::post, Router};
+pub mod auth_controller;
+pub mod auth_service;
+pub mod dto;
 
-pub mod login;
-pub mod register;
+use axum::Router;
 
-use login::login;
-use register::register;
+use self::auth_controller::AuthController;
 
 use super::AppState;
 
 /// This function returns a router with routes
 /// for authentication.
-pub fn get_auth_router() -> Router<AppState> {
-    Router::new()
-        .route("/register", post(register))
-        .route("/login", post(login))
+pub fn init_auth_router() -> Router<AppState> {
+    AuthController::init_auth_router()
 } // end fn get_auth_routes

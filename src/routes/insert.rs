@@ -7,14 +7,12 @@ use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde_json;
 
-use crate::{
-    models::{NewUser, User},
-    utils::responses::DefaultResponse,
-};
+use crate::{models::User, utils::responses::DefaultResponse};
 
 use crate::routes::dispatch_email;
 use crate::routes::dispatch_email::EmailPayload;
 
+use super::auth::dto::register_dto::RegisterUserDto;
 use super::AppState;
 
 /// Add a new user to the database.
@@ -36,7 +34,7 @@ use super::AppState;
 )]
 pub async fn insert(
     State(app_state): State<AppState>,
-    Form(user): Form<NewUser>,
+    Form(user): Form<RegisterUserDto>,
 ) -> DefaultResponse {
     // This is a default error message from a server in order not to
     // disclose some information that could be used to
@@ -182,7 +180,7 @@ pub async fn insert(
 /// It returns a status (StatusCode), which indicates whether or not
 /// the verification has been passed, and a message that
 /// contains additional information about the result.
-fn is_valid_form(user: &NewUser) -> (StatusCode, String) {
+fn is_valid_form(user: &RegisterUserDto) -> (StatusCode, String) {
     // Validate username.
     if user.name.is_empty() {
         return (
