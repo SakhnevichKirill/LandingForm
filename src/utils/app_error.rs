@@ -1,8 +1,12 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::Serialize;
+use utoipa::ToSchema;
 
+#[derive(ToSchema)]
 pub struct AppError {
+    #[schema(example = "404")]
     code: StatusCode,
+    #[schema(example = "Not found")]
     message: String,
 }
 

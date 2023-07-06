@@ -2,6 +2,7 @@ pub mod auth;
 pub mod dispatch_email;
 mod index;
 pub mod insert;
+mod peer_conn;
 
 use axum::{
     middleware,
@@ -106,10 +107,7 @@ pub async fn create_routes() -> Router {
         .route("/", get(index))
         .route("/insert", post(insert))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi()))
-        .nest(
-            "/auth",
-            auth::init_auth_router().with_state(app_state.clone()),
-        )
+        .merge(auth::init_auth_router(app_state.clone()).with_state(app_state.clone()))
         .layer(middleware::from_fn(metrics_collector))
         .with_state(app_state)
 } // end fn create_routes
@@ -119,7 +117,7 @@ pub async fn create_routes() -> Router {
 #[cfg(test)]
 mod tests {
 
-    use crate::routes::auth::dto::register_dto::RegisterUserDto;
+    use crate::routes::auth::auth_dto::register_dto::RegisterUserDto;
 
     use super::*;
     use axum::{body::Body, http::Request};
@@ -223,7 +221,7 @@ mod tests {
             phone_number_code: 1,
             phone_number: "1111111111".to_string(),
             password: None,
-        }; // end NewUser
+        }; // end RegisterUserDto
 
         // Build the form data string from the new_user data structure
         let form_data = format!(

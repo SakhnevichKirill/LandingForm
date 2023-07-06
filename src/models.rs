@@ -1,14 +1,12 @@
-use crate::routes::auth::auth_controller::__path_login;
-use crate::routes::auth::auth_controller::__path_register;
-use crate::routes::auth::dto::login_dto::LoginUserDto;
-use crate::routes::auth::dto::register_dto::RegisterUserDto;
+use crate::routes::auth::{
+    auth_controller::{__path_login, __path_register},
+    auth_dto::{login_dto::LoginUserDto, register_dto::RegisterUserDto, token_dto::TokenDto},
+};
 use crate::routes::dispatch_email::{EmailPayload, __path_dispatch_email};
 use crate::routes::insert::__path_insert;
-use crate::schema::users;
-use crate::utils::responses::{DefaultResponseJson, LoginResponseJson};
+use crate::utils::responses::DefaultResponseJson;
 use diesel::prelude::*;
-use serde::Deserialize;
-use utoipa::{OpenApi, ToSchema};
+use utoipa::OpenApi;
 
 /// This is a struct for retrieving a user from a database.
 #[derive(Queryable)]
@@ -39,6 +37,6 @@ pub struct User {
         (url = "http://95.165.88.39", description = "This is a remote server for testing"),
     ),
     paths(insert, dispatch_email, register, login),
-    components(schemas(RegisterUserDto, DefaultResponseJson, EmailPayload, DefaultResponseJson, LoginUserDto, LoginResponseJson))
+    components(schemas(RegisterUserDto, DefaultResponseJson, EmailPayload, DefaultResponseJson, LoginUserDto, TokenDto))
 )] // end openapi
 pub struct ApiDoc;

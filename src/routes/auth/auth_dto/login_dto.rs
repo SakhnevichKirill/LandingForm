@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use utoipa::ToSchema;
 
 /// This struct represents an existing user that already has
@@ -14,9 +14,3 @@ pub struct LoginUserDto {
     #[schema(example = "qwerty123")]
     pub password: String,
 } // end struct LoginUser
-
-#[derive(Serialize, Deserialize)]
-pub struct TokenResponse {
-    pub access_token: Option<String>,
-    pub refresh_token: Option<String>,
-}

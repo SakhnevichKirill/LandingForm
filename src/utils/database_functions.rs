@@ -1,5 +1,5 @@
 use crate::models::User;
-use crate::routes::auth::dto::register_dto::RegisterUserDto;
+use crate::routes::auth::auth_dto::register_dto::RegisterUserDto;
 use crate::schema::users;
 use axum::http::StatusCode;
 use diesel::pg::PgConnection;

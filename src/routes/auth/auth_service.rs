@@ -4,13 +4,13 @@ use crate::{
     schema::users::dsl,
     utils::{app_error::AppError, jwt::create_jwt, security::hash_password},
 };
-use axum::{extract::State, http::StatusCode};
+use axum::http::StatusCode;
 use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods};
 use diesel_async::RunQueryDsl;
 
-use crate::utils::responses::LoginResponse;
-
-use super::dto::{login_dto::LoginUserDto, register_dto::RegisterUserDto};
+use super::auth_dto::{
+    login_dto::LoginUserDto, register_dto::RegisterUserDto, token_dto::TokenDto,
+};
 
 pub(super) struct AuthService;
 
@@ -30,7 +30,7 @@ impl AuthService {
     ///
     /// Form template:
     ///
-    /// pub struct NewUser {
+    /// pub struct RegisterUserDto {
     ///     pub name: String,
     ///     pub email: Option<String>,
     ///     pub phone_number_code: i32,
@@ -38,7 +38,10 @@ impl AuthService {
     ///     pub password: Option<String>,
     /// }
     ///
-    pub async fn register(app_state: AppState, mut user: RegisterUserDto) -> LoginResponse {
+    pub async fn register(
+        app_state: AppState,
+        mut user: RegisterUserDto,
+    ) -> Result<TokenDto, AppError> {
         // This is a default error message from a server in order not to
         // disclose some information that could be used to
         // destroy the work of servers.
@@ -59,11 +62,10 @@ impl AuthService {
             // An error occurred while allocating a connection.
             Err(error) => {
                 eprintln!("{}", error);
-                return LoginResponse {
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: SERVER_ERROR.to_string(),
-                    token: None,
-                }; // end return
+                return Err(AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    SERVER_ERROR.to_string(),
+                )); // end return
             } // end Err
         }; // end match
 
@@ -74,11 +76,7 @@ impl AuthService {
         if !passed {
             // The form did not pass the verification.
             // Return an error response.
-            return LoginResponse {
-                status_code: StatusCode::UNAUTHORIZED,
-                message: message,
-                token: None,
-            };
+            return Err(AppError::new(StatusCode::UNAUTHORIZED, message));
         }
 
         // Get rid of unnecessary variables.
@@ -91,11 +89,10 @@ impl AuthService {
             user.password = Some(hashed_password);
         } else {
             // There was an error while hashing the password.
-            return LoginResponse {
-                status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                message: SERVER_ERROR.to_string(),
-                token: None,
-            }; // end return
+            return Err(AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                SERVER_ERROR.to_string(),
+            )); // end return
         } // end if
 
         // Check if the user with the same phone number already exists.
@@ -110,11 +107,10 @@ impl AuthService {
             Ok(res) => res,
             Err(error) => {
                 eprintln!("{}", error);
-                return LoginResponse {
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: SERVER_ERROR.to_string(),
-                    token: None,
-                }; // end return
+                return Err(AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    SERVER_ERROR.to_string(),
+                )); // end return
             } // end Err
         }; // end match
 
@@ -137,11 +133,10 @@ impl AuthService {
             if cur_user.verified {
                 // The user has already been verified, which means
                 // they cannot be registered again.
-                return LoginResponse {
-                    status_code: StatusCode::UNAUTHORIZED,
-                    message: "The user has already been registered".to_string(),
-                    token: None,
-                }; // end return
+                return Err(AppError::new(
+                    StatusCode::UNAUTHORIZED,
+                    "The user has already been registered".to_string(),
+                )); // end return
             } // end if
 
             // Save the user id of the current client.
@@ -155,11 +150,10 @@ impl AuthService {
                 .is_err()
             {
                 // An error occurred while updating data in a database.
-                return LoginResponse {
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: SERVER_ERROR.to_string(),
-                    token: None,
-                }; // end return
+                return Err(AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    SERVER_ERROR.to_string(),
+                )); // end return
             } // end if
         } else {
             // The user is absent in a database, so they
@@ -176,11 +170,10 @@ impl AuthService {
                 inserted_user.id
             } else {
                 // An error occurred while inserting data to a database.
-                return LoginResponse {
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                    message: SERVER_ERROR.to_string(),
-                    token: None,
-                }; // end return
+                return Err(AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    SERVER_ERROR.to_string(),
+                )); // end return
             }; // end if let
         } // end if
 
@@ -195,11 +188,10 @@ impl AuthService {
             .is_err()
         {
             // An error occurred while inserting data in the database.
-            return LoginResponse {
-                status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                message: SERVER_ERROR.to_string(),
-                token: None,
-            }; // end return
+            return Err(AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                SERVER_ERROR.to_string(),
+            )); // end return
         } // end if
 
         // The user is registered.
@@ -212,11 +204,10 @@ impl AuthService {
             token
         } else {
             // An error occurred, while generating a token.
-            return LoginResponse {
-                status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                message: SERVER_ERROR.to_string(),
-                token: None,
-            }; // end return
+            return Err(AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                SERVER_ERROR.to_string(),
+            )); // end return
         }; // end if let
 
         // Assign this JWT to the current client and
@@ -230,19 +221,17 @@ impl AuthService {
             .is_err()
         {
             // An error occurred while updating the data.
-            return LoginResponse {
-                status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                message: SERVER_ERROR.to_string(),
-                token: None,
-            }; // end return
+            return Err(AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                SERVER_ERROR.to_string(),
+            )); // end return
         } // end if
 
         // Return JWT with success status.
-        return LoginResponse {
-            status_code: StatusCode::OK,
-            message: "SUCCESSFUL AUTHORIZATION".to_string(),
-            token: Some(token),
-        }; // end return
+        return Ok(TokenDto {
+            access_token: Some(token),
+            refresh_token: None, // TODO: implement refresh_token
+        }); // end return
     } // fn register
 
     /// This function verifies that a form is filled out decently.
@@ -346,7 +335,7 @@ impl AuthService {
         &self,
         app_state: AppState,
         user: LoginUserDto,
-    ) -> Result<LoginResponse, AppError> {
+    ) -> Result<TokenDto, AppError> {
         // This is a default error message from a server in order not to
         // disclose some information that could be used to
         // destroy the work of servers.
@@ -469,10 +458,9 @@ impl AuthService {
                     } // end if
 
                     // Return the token to the client.
-                    return Ok(LoginResponse {
-                        status_code: StatusCode::OK,
-                        message: "SUCCESSFUL AUTHORIZATION".to_string(),
-                        token: Some(token),
+                    return Ok(TokenDto {
+                        access_token: Some(token),
+                        refresh_token: None, // TODO: implement refresh_token
                     }); // end return
                 } else {
                     // An error occurred while generating JWT.
@@ -492,11 +480,10 @@ impl AuthService {
             } // end if
         } else {
             // An error occurred while hashing password.
-            return Ok(LoginResponse {
-                status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                message: SERVER_ERROR.to_string(),
-                token: None,
-            }); // end return
+            return Err(AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                SERVER_ERROR.to_string(),
+            )); // end return
         } // end if
     } // fn login
 }

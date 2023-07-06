@@ -18,4 +18,4 @@ pub struct RegisterUserDto {
     pub phone_number: String,
     #[schema(example = "qwerty123")]
     pub password: Option<String>,
-} // end struct NewUser
+} // end struct RegisterUserDto

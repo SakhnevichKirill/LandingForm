@@ -12,7 +12,7 @@ use crate::{models::User, utils::responses::DefaultResponse};
 use crate::routes::dispatch_email;
 use crate::routes::dispatch_email::EmailPayload;
 
-use super::auth::dto::register_dto::RegisterUserDto;
+use super::auth::auth_dto::register_dto::RegisterUserDto;
 use super::AppState;
 
 /// Add a new user to the database.
@@ -25,7 +25,7 @@ use super::AppState;
     post,
     tag = "AddUser",
     path = "/insert",
-    request_body(content = NewUser, description = "Some data about a user", content_type = "application/x-www-form-urlencoded"),
+    request_body(content = RegisterUserDto, description = "Some data about a user", content_type = "application/x-www-form-urlencoded"),
     responses(
         (status = StatusCode::OK, description = "The user is added to the database successfully", body = DefaultResponseJson, example = json!("{\"message\": \"The user is added successfully!\", \"redirect\": null}")),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "There was an internal error on the server side", body = DefaultResponseJson, example = json!("{\"message\": \"An error occurred on the server side.\", \"redirect\": null}")),
